@@ -13,12 +13,27 @@ jobs:
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
     steps:
       - name: 🚚 Get latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🔑 Setup SSH agent
         uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🔍 Verify SSH secrets
+        run: |
+          if [ -z "$SSH_PORT" ]; then echo "ERROR: SSH_PORT secret is not set"; exit 1; fi
+          if [ -z "$SSH_SERVER" ]; then echo "ERROR: SSH_SERVER secret is not set"; exit 1; fi
+          if [ -z "$SSH_USERNAME" ]; then echo "ERROR: SSH_USERNAME secret is not set"; exit 1; fi
+          echo "SSH_PORT=$SSH_PORT"
+          echo "SSH_SERVER=$SSH_SERVER"
+          echo "SSH_USERNAME=$SSH_USERNAME"
+          echo "All SSH secrets are set"
+
+      - name: 🔌 Test SSH connection
+        run: |
+          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            "$SSH_USERNAME@$SSH_SERVER" 'echo "SSH connection successful"; hostname; whoami; ls -la /mykaeltech/ | head -5'
 
       - name: 🌐 Setup PHP
         uses: shivammathur/setup-php@v2
@@ -31,7 +46,7 @@ jobs:
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
